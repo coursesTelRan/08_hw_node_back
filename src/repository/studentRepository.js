@@ -1,25 +1,10 @@
-import {Students as Student} from "../model/students.js";
-import {MongoClient} from "mongodb";
-const url = ' mongodb://edd:1234@localhost:27017/java59?authSource=admin';
-const dbName = 'java59';
-const client = new MongoClient(url)
 let collection;
-
-export async function connect() {
-    // if (!(client.topology && client.topology.isConnected())) {
-    //     await client.connect();
-    // }
-    if (!client.topology?.isConnected()) {
-        await client.connect();
-    }
-    await client.connect();
-    const db = client.db(dbName);
-    collection = db.collection('college');
+export function init(db) {
+    collection = db.collection("college");
 }
 
 
 export const addStudent = async ({id, name, password}) => {
-    await connect();
     const existing = await collection.findOne({_id: id});
     if (existing) {
         return false;
@@ -28,72 +13,38 @@ export const addStudent = async ({id, name, password}) => {
     return true;
 }
 //
-// export const findStudent = (id) =>{
-//     return students.get(id)
-// }
+export const findStudent = async (id) =>{
+    return await collection.findOne({_id: id});
+}
 //
-// export const deleteStudent = (id) =>{
-//     const student = students.get(id);
-//     if (student){
-//         students.delete(id);
-//         return students;
-//     }
-// }
+export const deleteStudent = async (id) =>{
+    return  await collection.findOneAndDelete({_id: id});
+}
 //
-// export const updateStudent = (id, data) =>{
-//     const student = students.get(id);
-//     if (student){
-//         Object.assign(student, data);
-//         return student;
-//     }
-// }
-// export const addScore = ({ id, examName, score }) => {
-//     console.log("Trying to find student with ID:", id);
-//
-//     const student = students.get(Number(id));
-//
-//     if (!student) {
-//         console.log("Student not found!");
-//         return false;
-//     }
-//
-//     student.scores[examName] = score;
-//     console.log("Updated scores:", student.scores);
-//
-//     return true;
-// };
-//
-// export const searchByName = (name) => {
-//     const matchingStudents = [];
-//
-//     students.forEach((student) => {
-//         if (student.name.toLowerCase() === name.toLowerCase()) {
-//             matchingStudents.push(student);
-//         }
-//     });
-//
-//     return matchingStudents;
-// };
-// export const countByNames = (namesArray) => {
-//     let count = 0;
-//
-//     students.forEach((student) => {
-//         if (namesArray.includes(student.name)) {
-//             count++;
-//         }
-//     });
-//
-//     return count;
-// };
-// export const findByMinScore = (exam, minScore) => {
-//     const matchingStudents = [];
-//
-//     students.forEach((student) => {
-//         if (student.scores[exam] !== undefined && student.scores[exam] >= minScore) {
-//             matchingStudents.push(student);
-//         }
-//     });
-//
-//     return matchingStudents;
-// };
+export const updateStudent = async (id, data) =>{
+    return await collection.findOneAndUpdate(
+        {_id: id},
+        {$set: data},
+        {returnDocument:'after'}
+    )
+
+}
+export const addScore = async ({ id, examName, score }) => {
+    return await collection.findOneAndUpdate(
+        {_id: id},
+        {$set: {[`scores.${exam}`]: score}},
+    )
+};
+export const searchByName = async (name) => {
+    return await collection.find({name: {$regex: `^${name}$`, $options: 'i'}}).toArray();
+}
+
+export const countByNames = async (names) => {
+    return await collection.countDocuments({ name: { $regex: `^${names}$`, $options: 'i' } });
+};
+export const findByMinScore = async (exam, minScore) => {
+    return await collection.find({
+        [`scores.${exam}`]: { $exists: true, $gte: minScore }
+    }).sort({ [`scores.${exam}`]: 1 }).toArray();
+};
 
