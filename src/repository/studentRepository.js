@@ -1,80 +1,71 @@
-import {Students as Student} from "../model/students.js";
-const students = new Map();
+import dotenv from "dotenv";
+dotenv.config();
+import {MongoClient} from "mongodb";
+const client = new MongoClient(process.env.MONGODB_URI);
+const dbName = 'java59';
+let collection;
 
-export const addStudent = ({id, name, password}) => {
-    if (students.has(id)) {
+export async function connect() {
+    if (!client.topology?.isConnected()) {
+        await client.connect();
+    }
+    await client.connect();
+    const db = client.db(dbName);
+    collection = db.collection('college');
+}
+
+
+export const addStudent = async ({id, name, password}) => {
+    await connect();
+    const existing = await collection.findOne({_id: id});
+    if (existing) {
         return false;
     }
-    students.set(id, new Student(id, name, password));
+    await collection.insertOne({_id: id, name, password: password, scores:{}});
     return true;
 }
+//
+export const findStudent = async (id) =>{
+    await connect();
+    return await collection.findOne({_id: id});
+}
+//
+export const deleteStudent = async (id) =>{
+    await connect();
+    return  await collection.findOneAndDelete({_id: id});
 
-export const findStudent = (id) =>{
-    return students.get(id)
+}
+//
+export const updateStudent = async (id, data) =>{
+    await connect();
+    return await collection.findOneAndUpdate(
+        {_id: id},
+        {$set: data},
+        {returnDocument:'after'}
+    )
+
+}
+export const addScore = async ({ id, examName, score }) => {
+    await connect();
+    return await collection.findOneAndUpdate(
+        {_id: id},
+        {$set: {[`scores.${exam}`]: score}},
+    )
+};
+//
+export const searchByName = async (name) => {
+    await connect();
+    return await collection.find({name: {$regex: `^${name}$`, $options: 'i'}}).toArray();
 }
 
-export const deleteStudent = (id) =>{
-    const student = students.get(id);
-    if (student){
-        students.delete(id);
-        return students;
-    }
-}
-
-export const updateStudent = (id, data) =>{
-    const student = students.get(id);
-    if (student){
-        Object.assign(student, data);
-        return student;
-    }
-}
-export const addScore = ({ id, examName, score }) => {
-    console.log("Trying to find student with ID:", id);
-
-    const student = students.get(Number(id));
-
-    if (!student) {
-        console.log("Student not found!");
-        return false;
-    }
-
-    student.scores[examName] = score;
-    console.log("Updated scores:", student.scores);
-
-    return true;
+export const countByNames = async (names) => {
+    await connect();
+    return await collection.countDocuments({ name: { $regex: `^${names}$`, $options: 'i' } });
 };
-
-export const searchByName = (name) => {
-    const matchingStudents = [];
-
-    students.forEach((student) => {
-        if (student.name.toLowerCase() === name.toLowerCase()) {
-            matchingStudents.push(student);
-        }
-    });
-
-    return matchingStudents;
-};
-export const countByNames = (namesArray) => {
-    let count = 0;
-
-    students.forEach((student) => {
-        if (namesArray.includes(student.name)) {
-            count++;
-        }
-    });
-
-    return count;
-};
-export const findByMinScore = (exam, minScore) => {
-    const matchingStudents = [];
-
-    students.forEach((student) => {
-        if (student.scores[exam] !== undefined && student.scores[exam] >= minScore) {
-            matchingStudents.push(student);
-        }
-    });
-
-    return matchingStudents;
+export const findByMinScore = async (exam, minScore) => {
+    await connect()
+    return await collection.find({
+        [`scores.${exam}`]: { $exists: true, $gte: minScore }
+    }).sort({ [`scores.${exam}`]: 1 }).toArray();
 };
 
