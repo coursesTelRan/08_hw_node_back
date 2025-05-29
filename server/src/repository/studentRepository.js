@@ -17,7 +17,7 @@ export async function updateStudent(id, data){
 export async function updateStudentScore(id, exam, score){
     return Student.findByIdAndUpdate(id, {[`score.${exam}`]: score}, {new: true});
 }
-export async function findStudentsByName(names){
+export async function findStudentsByName(name){
     return Student.find({name: new RegExp(`^${name}$`, "i")});
 }
 

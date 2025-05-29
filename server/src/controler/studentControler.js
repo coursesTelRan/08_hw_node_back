@@ -2,13 +2,10 @@ import * as service from '../service/studentRepositoryService.js'
 import {scoreSchema, studentSchema, updateStudentSchema} from "../validator/studentValidator.js";
 
 export const addStudent = async (req, res) => {
-    const {error} = studentSchema.validate(req.body);
-    if(error){
-        return res.status(400).json({error: error.details[0].message});
-    }
-    const success = await service.addStudent(req.body);
-    res.sendStatus(success ? 201: 409);
-}
+    const { success, error } = await service.addStudent(req.body);
+    if (error) return res.status(400).json({ error });
+    res.sendStatus(success ? 201 : 409);
+};
 //
 export const findStudent = async (req, res) => {
     const student = await service.findStudent(+req.params.id);
@@ -23,17 +20,11 @@ export const findStudent = async (req, res) => {
 //
 export const updateStudent = async (req, res) => {
     //TODO
-    const {error} = updateStudentSchema(req.body);
-    if (error){
-        return res.status(400).json({error: error.details[0].message});
-    }
-    const student = await service.updateStudent(+req.params.id, req.body);
-    if(student){
-        student.scores = undefined;
-        res.json(student);
-    } else{
-        res.sendStatus(404);
-    }
+    const { student, error } = await service.updateStudent(+req.params.id, req.body);
+    if (error) return res.status(400).json({ error });
+    if (!student) return res.sendStatus(404);
+    student.scores = undefined;
+    res.json(student);
 }
 //
 export const deleteStudent = async (req, res) => {
@@ -48,12 +39,9 @@ export const deleteStudent = async (req, res) => {
 }
 //
 export const addScore = async (req, res) => {
-    const {error} = scoreSchema.validate(req.body);
-    if (error){
-        return res.status(400).json({error: error.details[0].message});
-    }
-    const success = await service.addScore(+req.params.id, req.body.examName, +req.body.score);
-    res.sendStatus(success ? 201: 409);
+    const { success, error } = await service.addScore(+req.params.id, req.body.examName, +req.body.score);
+    if (error) return res.status(400).json({ error });
+    res.sendStatus(success ? 201 : 409);
 };
 //
 //

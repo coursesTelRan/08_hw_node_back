@@ -1,7 +1,7 @@
 import Joi from "joi";
 
 export const studentSchema = Joi.object({
-    id: Joi.string().required(),
+    id: Joi.number().integer().required(),
     name: Joi.string().required(),
     password: Joi.string().required(),
 })
